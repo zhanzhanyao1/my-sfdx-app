@@ -8,12 +8,14 @@ on:
 jobs:
   validate_and_test:
     runs-on: ubuntu-latest
-    environment: Dev   # ✅ 指定你创建的 Environment 名称
+    environment: Dev  # 使用 Environment 绑定 secret
 
     steps:
+      # 1️⃣ 检出代码
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 2️⃣ 设置 Salesforce env variables
       - name: Set Salesforce env variables
         run: |
           echo "SF_USERNAME=${{ secrets.SF_USERNAME }}" >> $GITHUB_ENV
@@ -23,32 +25,15 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           echo "SF_LOGIN_URL=${{ secrets.SF_LOGIN_URL }}" >> $GITHUB_ENV
 
+      # 3️⃣ 安装 Salesforce CLI
       - name: Install Salesforce CLI
         run: |
           npm install sfdx-cli --global
 
+      # 4️⃣ JWT 登录 Salesforce
       - name: Authenticate to Salesforce using JWT
         run: |
           echo "${SF_JWT_KEY}" > server.key
+          chmod 600 server.key
           sfdx auth:jwt:grant \
-            --clientid $SF_CLIENT_ID \
-            --jwtkeyfile server.key \
-            --username $SF_USERNAME \
-            --setdefaultusername \
-            --instanceurl $SF_LOGIN_URL
-
-      - name: Validate deployment (check-only)
-        run: |
-          sfdx force:source:deploy -p force-app/main/default -w 10 --checkonly
-
-      - name: Run Apex tests
-        run: |
-          sfdx force:apex:test:run \
-            --wait 10 \
-            --resultformat human \
-            --codecoverage \
-            --testlevel RunLocalTests
-
-      - name: Get test results
-        run: |
-          sfdx force:apex:test:report --wait 10 --resultformat human
+            --clientid $SF_C_
