@@ -100,7 +100,7 @@ jobs:
       # 🔟 上传构建结果 artifact（测试 + 覆盖率 + PMD + metadata package）
       - name: Upload Build Artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: salesforce-ci-artifacts-${{ env.SF_ENV }}
           path: |
