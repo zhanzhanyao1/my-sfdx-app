@@ -54,8 +54,3 @@ sf project retrieve start \
 echo "Committing to Git..."
 git add .
 git commit -m "Initial commit: retrieve metadata from Org using sf CLI"
-git branch -M main
-git remote add origin $GIT_REPO_URL
-git push -u origin main
-
-echo "✅ All done! Metadata retrieved (source format) and pushed to Git using sf CLI."
