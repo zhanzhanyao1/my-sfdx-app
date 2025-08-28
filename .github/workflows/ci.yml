@@ -8,6 +8,7 @@ on:
 jobs:
   validate_and_test:
     runs-on: ubuntu-latest
+    environment: Dev   # ✅ 指定你创建的 Environment 名称
 
     steps:
       - name: Checkout code
