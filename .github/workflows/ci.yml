@@ -23,10 +23,9 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           echo "SF_LOGIN_URL=${{ secrets.SF_LOGIN_URL }}" >> $GITHUB_ENV
 
-      - name: Setup Salesforce CLI
-        uses: amtrack/sfdx-action@v1
-        with:
-          version: latest
+      - name: Install Salesforce CLI
+        run: |
+          npm install sfdx-cli --global
 
       - name: Authenticate to Salesforce using JWT
         run: |
