@@ -1,0 +1,89 @@
+name: Salesforce CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate_and_test:
+    runs-on: ubuntu-latest
+    environment: Dev  # 指定 Environment，注入 Environment Secrets
+
+    steps:
+      # 1️⃣ 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2️⃣ 设置 Salesforce 环境变量
+      - name: Set Salesforce env variables
+        run: |
+          echo "SF_USERNAME=${{ secrets.SF_USERNAME }}" >> $GITHUB_ENV
+          echo "SF_CLIENT_ID=${{ secrets.SF_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "SF_JWT_KEY<<EOF" >> $GITHUB_ENV
+          echo "${{ secrets.SF_JWT_KEY }}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          echo "SF_LOGIN_URL=${{ secrets.SF_LOGIN_URL }}" >> $GITHUB_ENV
+
+      # 3️⃣ 安装 Salesforce CLI
+      - name: Install Salesforce CLI
+        run: |
+          npm install sfdx-cli --global
+
+      # 4️⃣ JWT 登录 Salesforce
+      - name: Authenticate to Salesforce using JWT
+        run: |
+          echo "${SF_JWT_KEY}" > server.key
+          chmod 600 server.key
+          sfdx force:auth:jwt:grant \
+            --clientid $SF_CLIENT_ID \
+            --jwtkeyfile server.key \
+            --username $SF_USERNAME \
+            --setdefaultusername \
+            --instanceurl $SF_LOGIN_URL
+
+      # 5️⃣ 验证 JWT 登录是否成功
+      - name: Check default Salesforce username
+        run: sfdx force:org:display
+
+      # 6️⃣ 验证部署（check-only）
+      - name: Validate deployment (check-only)
+        run: |
+          sfdx force:source:deploy \
+            -p force-app/main/default \
+            -w 10 \
+            --checkonly
+
+      # 7️⃣ 运行 Apex 测试并导出结果
+      - name: Run Apex tests
+        run: |
+          mkdir -p test-results coverage
+          sfdx force:apex:test:run \
+            --wait 10 \
+            --resultformat junit \
+            --codecoverage \
+            --testlevel RunLocalTests \
+            --outputdir test-results
+          sfdx force:apex:test:report \
+            --wait 10 \
+            --resultformat json \
+            --codecoverage \
+            --outputdir coverage
+
+      # 8️⃣ 打包 Salesforce Metadata
+      - name: Convert and Package Salesforce Metadata
+        run: |
+          mkdir -p deploy-package
+          sfdx force:source:convert -r force-app -d deploy-package
+          zip -r deploy-package.zip deploy-package
+
+      # 9️⃣ 上传构建产物 artifact
+      - name: Upload Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: salesforce-ci-artifacts
+          path: |
+            test-results/
+            coverage/
+            deploy-package.zip
